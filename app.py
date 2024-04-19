@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import openai
 import chainlit as cl
@@ -15,30 +16,46 @@ from llama_index.core.query_engine.retriever_query_engine import RetrieverQueryE
 from llama_index.core.callbacks import CallbackManager
 from llama_index.core.service_context import ServiceContext
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+import langchain
+from langchain import OpenAI, SerpAPIWrapper
+from langchain.agents import Tool, initialize_agent
+from langchain.chains.conversation.memory import ConversationBufferMemory
 
-try:
-    # rebuild storage context
-    storage_context = StorageContext.from_defaults(persist_dir="./storage")
-    # load index
-    index = load_index_from_storage(storage_context)
-except:
-    documents = SimpleDirectoryReader("./data").load_data(show_progress=True)
-    index = VectorStoreIndex.from_documents(documents)
-    index.storage_context.persist()
+langchain.verbose = True
+from dotenv import load_dotenv
+load_dotenv('.env')
+
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 
 @cl.on_chat_start
 async def start():
-    Settings.llm = OpenAI(
-        model="gpt-4-turbo-preview", temperature=0.1, max_tokens=1024, streaming=True
-    )
-    Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
-    Settings.context_window = 4096
+    try:
+        # rebuild storage context
+        storage_context = StorageContext.from_defaults(persist_dir="./storage")
+        # load index
+        index = load_index_from_storage(storage_context)
+    except:
+        documents = SimpleDirectoryReader("./data").load_data(show_progress=True)
+        index = VectorStoreIndex.from_documents(documents)
+        index.storage_context.persist()
 
-    service_context = ServiceContext.from_defaults(callback_manager=CallbackManager([cl.LlamaIndexCallbackHandler()]))
-    query_engine = index.as_query_engine(streaming=True, similarity_top_k=2, service_context=service_context)
-    cl.user_session.set("query_engine", query_engine)
+    tools = [
+        Tool(
+            name="Kanmon Tunnel",
+            func=lambda q: str(index.as_query_engine().query(q)),
+            description="Useful for the generating the answers of Kanmon Tunnel",
+            return_direct=True,
+        )
+    ]
+
+    agent = initialize_agent(
+        tools,
+        llm=OpenAI(temperature=0),
+        gent="zero-shot-react-description",
+        verbose=True,
+    )
+    cl.user_session.set("query_engine", agent)
 
     await cl.Message(
         author="Assistant", content="Hello! Im an AI assistant. How may I help you?"
@@ -49,10 +66,7 @@ async def start():
 async def main(message: cl.Message):
     query_engine = cl.user_session.get("query_engine") # type: RetrieverQueryEngine
 
-    msg = cl.Message(content="", author="Assistant")
+    res = query_engine.run(input=message.content)
+    msg = cl.Message(content=res, author="Assistant")
 
-    res = await cl.make_async(query_engine.query)(message.content)
-
-    for token in res.response_gen:
-        await msg.stream_token(token)
     await msg.send()
