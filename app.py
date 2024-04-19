@@ -1,46 +1,58 @@
-from boto3.session import Session
-from langchain.chat_models import BedrockChat
-from langchain.chains import ConversationChain
-from langchain.memory import ConversationBufferMemory
-from langchain.prompts.chat import (
-    ChatPromptTemplate,
-    HumanMessagePromptTemplate,
-    MessagesPlaceholder,
-)
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema import StrOutputParser
-from langchain.schema.runnable import Runnable
-from langchain.schema.runnable.config import RunnableConfig
+import os
+import openai
 import chainlit as cl
 
+from llama_index.core import (
+    Settings,
+    StorageContext,
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    load_index_from_storage,
+)
+from llama_index.llms.openai import OpenAI
+from llama_index.embeddings.openai import OpenAIEmbedding
+from llama_index.core.query_engine.retriever_query_engine import RetrieverQueryEngine
+from llama_index.core.callbacks import CallbackManager
+from llama_index.core.service_context import ServiceContext
+
+openai.api_key = os.environ.get("OPENAI_API_KEY")
+
+try:
+    # rebuild storage context
+    storage_context = StorageContext.from_defaults(persist_dir="./storage")
+    # load index
+    index = load_index_from_storage(storage_context)
+except:
+    documents = SimpleDirectoryReader("./data").load_data(show_progress=True)
+    index = VectorStoreIndex.from_documents(documents)
+    index.storage_context.persist()
+
+
 @cl.on_chat_start
-async def on_chat_start():
-    session = Session(profile_name="aicamp")
-
-    bedrock_runtime = session.client("bedrock-runtime", region_name="us-east-1")
-
-    model = BedrockChat(
-        client=bedrock_runtime,
-        model_id="anthropic.claude-3-haiku-20240307-v1:0",
-        model_kwargs={"max_tokens": 500},
+async def start():
+    Settings.llm = OpenAI(
+        model="gpt-4-turbo-preview", temperature=0.1, max_tokens=1024, streaming=True
     )
+    Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small")
+    Settings.context_window = 4096
 
-    memory = ConversationBufferMemory(return_messages=True)
-    prompt = ChatPromptTemplate.from_messages([
-        MessagesPlaceholder(variable_name="history"),
-        HumanMessagePromptTemplate.from_template("""{input}""")
-    ])
+    service_context = ServiceContext.from_defaults(callback_manager=CallbackManager([cl.LlamaIndexCallbackHandler()]))
+    query_engine = index.as_query_engine(streaming=True, similarity_top_k=2, service_context=service_context)
+    cl.user_session.set("query_engine", query_engine)
 
-    runnable = ConversationChain(llm=model, prompt=prompt, memory=memory)
-    cl.user_session.set("runnable", runnable)
+    await cl.Message(
+        author="Assistant", content="Hello! Im an AI assistant. How may I help you?"
+    ).send()
+
 
 @cl.on_message
-async def on_message(message: cl.Message):
-    runnable = cl.user_session.get("runnable")  # type: Runnable
+async def main(message: cl.Message):
+    query_engine = cl.user_session.get("query_engine") # type: RetrieverQueryEngine
 
+    msg = cl.Message(content="", author="Assistant")
 
-    result = runnable.run(message.content)
-    msg = cl.Message(content=result)
+    res = await cl.make_async(query_engine.query)(message.content)
 
+    for token in res.response_gen:
+        await msg.stream_token(token)
     await msg.send()
