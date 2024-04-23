@@ -1,3 +1,4 @@
-llama_index
-chainlit
-dotenv
+streamlit
+streamlit_authenticate
+python-dotenv
+boto3
