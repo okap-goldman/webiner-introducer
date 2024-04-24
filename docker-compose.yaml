@@ -1,0 +1,10 @@
+version: '3'
+services:
+  python3:
+    restart: always
+    env_file: '.env'
+    build: .
+    container_name: 'python3'
+    working_dir: '/root/'
+    volumes:
+      - ./data:/root/data

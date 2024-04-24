@@ -1,6 +1,10 @@
+from langchain.globals import set_verbose
+
 from libs.prompt import create_chain, get_history_for_template
 from libs.streamlit import clear_messages_on_session, draw_chat_history, draw_login_page, draw_logout_button, draw_new_message, get_authenticate, get_login_status, init_messages_on_session, is_just_login, receive_user_input, show_error, show_warning
 from libs.aws.dynamodb import fetch_chat_history_db, get_session_id, update_history
+
+set_verbose(True)  # デバッグ時はTrue
 
 # Chainを定義
 chain = create_chain()
