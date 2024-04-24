@@ -1,14 +1,18 @@
 from langchain_community.chat_models import BedrockChat
 from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
 
-from libs.aws.session import get_aws_session
+from libs.aws.session import get_boto3_session
+from libs.const import BEDROCK_MODEL_ID
+from libs.env import get_env
+
+env = get_env()
 
 def get_llm():
-    session = get_aws_session()
-    bedrock_runtime = session.client("bedrock-runtime", region_name="us-east-1")
+    session = get_boto3_session()
+    bedrock_runtime = session.client("bedrock-runtime")
     return BedrockChat(
         client=bedrock_runtime,
-        model_id="anthropic.claude-3-haiku-20240307-v1:0",
+        model_id=BEDROCK_MODEL_ID,
         model_kwargs={"max_tokens": 1000},
     )
 
@@ -16,8 +20,8 @@ def get_retriver():
     # Retriever(KnowledgeBase)の定義
     # Knowledge base ID、取得件数、検索方法（ハイブリッド）
     return AmazonKnowledgeBasesRetriever(
-        credentials_profile_name="aicamp",
-        knowledge_base_id="JTX4FB9NF7",
+        credentials_profile_name=env["AWS_PROFILE_NAME"],
+        knowledge_base_id=env["KNOWLEDGE_BASE_ID"],
         retrieval_config={
             "vectorSearchConfiguration": {
                 "numberOfResults": 10, 

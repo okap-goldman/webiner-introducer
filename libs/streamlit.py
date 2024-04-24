@@ -34,12 +34,21 @@ def is_just_login():
     return "FormSubmitter:Login-Login" in st.session_state
 
 def draw_logout_button(authenticate):
+    """
+    ログアウトボタンを描画する
+    """
     authenticate.logout(location="sidebar")
 
 def show_warning(message):
+    """
+    警告を表示する
+    """
     st.warning(message)
 
 def show_error(message):
+    """
+    エラーを表示する
+    """
     st.error(message)
 
 def clear_messages_on_session():

@@ -1,7 +1,10 @@
 from langchain_community.chat_message_histories import DynamoDBChatMessageHistory
 import streamlit as st
 
-from libs.aws.session import get_aws_session
+from libs.aws.session import get_boto3_session
+from libs.env import get_env
+
+env = get_env()
 
 def get_session_id():
     """
@@ -16,8 +19,8 @@ def fetch_chat_history_db(session_id):
 
     session_id: セッションID(DBのキーとして使用している)
     """
-    boto3_session = get_aws_session()
-    return DynamoDBChatMessageHistory(table_name="chat-history-dynamodb", session_id=session_id, boto3_session=boto3_session)
+    boto3_session = get_boto3_session()
+    return DynamoDBChatMessageHistory(table_name=env["DYNAMO_CHAT_HISTORY_TABLE_NAME"], session_id=session_id, boto3_session=boto3_session)
 
 def update_history(message_history_db, user_message, ai_message):
     """

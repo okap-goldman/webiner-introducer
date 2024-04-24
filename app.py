@@ -34,7 +34,7 @@ else:
     # 入力を求める
     if input_text := receive_user_input("質問を入力してください"):
         # 画面にユーザの入力を追加表示する
-        draw_new_message("user", input_text)
+        draw_new_message("human", input_text)
 
         # chainを実行し、結果を画面に追加表示する
         result = chain.invoke({"question": input_text, "messages": history_for_template})
