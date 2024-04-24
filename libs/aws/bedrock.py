@@ -1,7 +1,7 @@
 from langchain_community.chat_models import BedrockChat
-from langchain.retrievers import AmazonKnowledgeBasesRetriever
+from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
 
-from libs.session import get_aws_session
+from libs.aws.session import get_aws_session
 
 def get_llm():
     session = get_aws_session()

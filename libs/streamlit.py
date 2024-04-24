@@ -56,13 +56,13 @@ def init_messages_on_session():
     if "messages" not in st.session_state:
         st.session_state["messages"] = []
 
-def draw_chat_history():
+def draw_chat_history(message_history_db):
     """
     チャット履歴を描画する
     """
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    for message in message_history_db.messages:
+        with st.chat_message(message.type):
+            st.markdown(message.content)
 
 def draw_new_message(role, content):
     """

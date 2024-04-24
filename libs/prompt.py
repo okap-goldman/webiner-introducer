@@ -8,7 +8,7 @@ from langchain.schema import (
 from langchain_core.output_parsers import StrOutputParser
 from operator import itemgetter
 
-from libs.bedrock import get_llm, get_retriver
+from libs.aws.bedrock import get_llm, get_retriver
 
 def get_prompt_for_extract_keyword():
     """
@@ -33,22 +33,22 @@ def get_prompt_for_answer_question():
     """
     return ChatPromptTemplate.from_messages(
         [
-            SystemMessage("あなたはAIアシスタントです。最後の質問に回答してください。回答の中では「最後の質問に回答します」といった旨の文言は含めないでください"),
+            SystemMessage("あなたはAIアシスタントです。最後の質問に回答してください。"),
             MessagesPlaceholder(variable_name="messages"),
             ("human", "<retrived_context>{retrived_context}</retrived_context>")
         ]
     )
 
-def get_history_for_template():
+def get_history_for_template(message_history_db):
     """
     メッセージ履歴をプロンプトに埋め込む形式で取得する
     """
     histories = []
-    for message in st.session_state.messages:
-        if message["role"] == "user":
-            histories.append(HumanMessage(content=message["content"]))
+    for message in message_history_db.messages:
+        if message.type == "human":
+            histories.append(HumanMessage(content=message.content))
         else:
-            histories.append(AIMessage(content=message["content"]))
+            histories.append(AIMessage(content=message.content))
     return histories
 
 def create_chain():
