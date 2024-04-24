@@ -1,0 +1,7 @@
+langchain
+langchain-aws
+boto3
+streamlit
+streamlit-authenticator
+pyarrow
+python-dotenv
