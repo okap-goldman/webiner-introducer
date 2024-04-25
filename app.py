@@ -1,16 +1,17 @@
 from langchain.globals import set_verbose
 
-from libs.prompt import create_chain, get_history_for_template
-from libs.streamlit import clear_messages_on_session, draw_chat_history, draw_login_page, draw_logout_button, draw_new_message, get_authenticate, get_login_status, init_messages_on_session, is_just_login, receive_user_input, show_error, show_warning
+from libs.prompt import create_chain_for_answer_question, get_history_for_template
+from libs.streamlit import clear_messages_on_session, draw_chat_history, draw_login_page, draw_logout_button, draw_new_message, create_authentication, get_login_status, init_messages_on_session, is_just_login, receive_user_input, show_error, show_warning
 from libs.aws.dynamodb import fetch_chat_history_db, get_session_id, update_history
 
-set_verbose(True)  # デバッグ時はTrue
+# LangChainのログ出力設定 デバッグ時はTrue
+set_verbose(True)  
 
 # Chainを定義
-chain = create_chain()
+chain = create_chain_for_answer_question()
 
 # ログイン画面描画
-authenticate = get_authenticate()
+authenticate = create_authentication()
 draw_login_page(authenticate)
 
 logined = get_login_status()
@@ -21,10 +22,9 @@ elif logined is None:
 else:
     draw_logout_button(authenticate)
 
+    # DynamoDBからメッセージ履歴を取得し、sessionにセット
     if is_just_login():
         clear_messages_on_session()
-
-    # DynamoDBからメッセージ履歴を取得し、sessionにセット
     session_id = get_session_id()
     message_history_db = fetch_chat_history_db(session_id)
     init_messages_on_session()

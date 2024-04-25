@@ -5,3 +5,5 @@ streamlit
 streamlit-authenticator
 pyarrow
 python-dotenv
+youtube-transcript-api
+pytube

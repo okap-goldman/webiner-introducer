@@ -1,19 +1,29 @@
 import streamlit as st
 import streamlit_authenticator as sa
 
-def get_authenticate():
+def create_authentication():
     """
     認証情報を設定する
     """
     return sa.Authenticate(
-        credentials={"usernames":{
-            "user1":{"name":"user1","password":"pass"},
-            "user2":{"name":"user2","password":"pass"},
-            "user3":{"name":"user3","password":"pass"}}},
+        credentials={
+            "usernames":{
+                "user1":{"name":"user1","password":"pass"},
+                "user2":{"name":"user2","password":"pass"},
+                "user3":{"name":"user3","password":"pass"},
+                "admin1":{"name":"admin1","password":"pass"}
+            }
+        },
         cookie_name="streamlit_cookie",
         cookie_key="signature_key",
         cookie_expiry_days=1
     )
+
+def is_admin():
+    """
+    管理者か判定
+    """
+    return "admin" in st.session_state["username"]
 
 def draw_login_page(authenticate):
     """
